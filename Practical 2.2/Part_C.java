@@ -3,10 +3,8 @@
 import java.io.*;
 import java.util.Scanner;
 
-// Employee class implementing Serializable
 class Employee implements Serializable {
     private static final long serialVersionUID = 1L;
-
     int id;
     String name;
     String designation;
@@ -25,7 +23,18 @@ class Employee implements Serializable {
     }
 }
 
-public class EmployeeManagementSystem {
+class AppendableObjectOutputStream extends ObjectOutputStream {
+    public AppendableObjectOutputStream(OutputStream out) throws IOException {
+        super(out);
+    }
+
+    @Override
+    protected void writeStreamHeader() throws IOException {
+        // Do not write a header when appending
+    }
+}
+
+public class Main {
     private static final String FILE_NAME = "employees.dat";
 
     public static void main(String[] args) {
@@ -37,6 +46,7 @@ public class EmployeeManagementSystem {
             System.out.println("3. Exit");
             System.out.print("Choose an option: ");
             int choice = sc.nextInt();
+            sc.nextLine(); 
 
             switch (choice) {
                 case 1 -> addEmployee(sc);
@@ -54,7 +64,7 @@ public class EmployeeManagementSystem {
     private static void addEmployee(Scanner sc) {
         System.out.print("Enter Employee ID: ");
         int id = sc.nextInt();
-        sc.nextLine(); // consume newline
+        sc.nextLine();
         System.out.print("Enter Name: ");
         String name = sc.nextLine();
         System.out.print("Enter Designation: ");
@@ -64,10 +74,16 @@ public class EmployeeManagementSystem {
 
         Employee employee = new Employee(id, name, designation, salary);
 
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(FILE_NAME, true)) {
-            protected void writeStreamHeader() throws IOException { /* Do not write header for appending */ }
-        }) {
+        try {
+            File file = new File(FILE_NAME);
+            ObjectOutputStream oos;
+            if (file.exists()) {
+                oos = new AppendableObjectOutputStream(new FileOutputStream(file, true));
+            } else {
+                oos = new ObjectOutputStream(new FileOutputStream(file));
+            }
             oos.writeObject(employee);
+            oos.close();
             System.out.println("Employee added successfully!");
         } catch (IOException e) {
             e.printStackTrace();
@@ -75,16 +91,21 @@ public class EmployeeManagementSystem {
     }
 
     private static void displayEmployees() {
-        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(FILE_NAME))) {
+        File file = new File(FILE_NAME);
+        if (!file.exists()) {
+            System.out.println("No employee records found.");
+            return;
+        }
+
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
             System.out.println("\n--- Employee Records ---");
             while (true) {
                 Employee emp = (Employee) ois.readObject();
                 System.out.println(emp);
             }
         } catch (EOFException e) {
-         
         } catch (IOException | ClassNotFoundException e) {
-            System.out.println("No employee records found.");
+            e.printStackTrace();
         }
     }
 }
