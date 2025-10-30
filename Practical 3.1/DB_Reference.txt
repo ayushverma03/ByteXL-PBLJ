@@ -1,0 +1,112 @@
+==========================
+Experiment 3.1 – Database Connectivity Reference
+==========================
+
+1. Database Setup
+
+-- Create database
+CREATE DATABASE yourdb;
+
+-- Use database
+USE yourdb;
+
+-- Employee table
+CREATE TABLE Employee (
+    EmpID INT PRIMARY KEY,
+    Name VARCHAR(50),
+    Salary DOUBLE
+);
+
+-- Sample data for Employee
+INSERT INTO Employee VALUES (1,'Alice',50000);
+INSERT INTO Employee VALUES (2,'Bob',60000);
+INSERT INTO Employee VALUES (3,'Charlie',55000);
+
+-- Attendance table
+CREATE TABLE Attendance (
+    StudentID VARCHAR(20),
+    Date DATE,
+    Status VARCHAR(10)
+);
+
+==========================
+2. JDBC Connection Template (Reusable)
+==========================
+
+try {
+    // Load JDBC Driver
+    Class.forName("com.mysql.cj.jdbc.Driver");
+
+    // Database URL, username, password
+    String DB_URL = "jdbc:mysql://localhost:3306/yourdb";
+    String DB_USER = "root";
+    String DB_PASS = "password";
+
+    // Establish connection
+    Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS);
+
+    // Your database operations here
+
+    // Close connection
+    conn.close();
+
+} catch (Exception e) {
+    e.printStackTrace();
+}
+
+==========================
+3. Employee Records Retrieval (Servlet GET)
+==========================
+
+String empId = request.getParameter("empId");
+
+String query = (empId != null && !empId.isEmpty()) 
+               ? "SELECT * FROM Employee WHERE EmpID=?" 
+               : "SELECT * FROM Employee";
+
+PreparedStatement ps = conn.prepareStatement(query);
+
+if (empId != null && !empId.isEmpty()) {
+    ps.setInt(1, Integer.parseInt(empId));
+}
+
+ResultSet rs = ps.executeQuery();
+
+// Loop through results and display in HTML table
+while (rs.next()) {
+    int id = rs.getInt("EmpID");
+    String name = rs.getString("Name");
+    double salary = rs.getDouble("Salary");
+    out.println("<tr><td>" + id + "</td><td>" + name + "</td><td>" + salary + "</td></tr>");
+}
+
+==========================
+4. Attendance Form Submission (Servlet POST)
+==========================
+
+String studentId = request.getParameter("studentId");
+String date = request.getParameter("date");
+String status = request.getParameter("status");
+
+// Insert into Attendance table
+PreparedStatement ps = conn.prepareStatement(
+    "INSERT INTO Attendance(StudentID, Date, Status) VALUES (?, ?, ?)"
+);
+ps.setString(1, studentId);
+ps.setString(2, date);
+ps.setString(3, status);
+
+ps.executeUpdate();
+
+// Confirmation message
+out.println("<h2>Attendance recorded successfully!</h2>");
+
+==========================
+5. Important Notes
+==========================
+
+- Always close the connection after use: conn.close();
+- Use PreparedStatement to prevent SQL injection.
+- Keep DB credentials safe; consider using a config file or environment variables.
+- Ensure MySQL JDBC driver (mysql-connector-java.jar) is in WEB-INF/lib.
+- This reference covers EmployeeServlet, AttendanceServlet, and any other JDBC operations in Experiment 3.1.
